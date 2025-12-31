@@ -1,62 +1,63 @@
 #include "crypto_engine.h"
 #include "helper_fun.h"
-#include "secrets.h"
 
-#include "esp_log.h"
-static const char* TAG = "CRYPTO";
-
-#include <ChaChaPoly.h>
+#include "mbedtls/gcm.h"
 #include <Arduino.h>
 
-void generate_nonce(uint8_t nonce[CHACHA_NONCE_SIZE]) {
-    uint32_t *p = (uint32_t *)nonce;
-    p[0] = esp_random();
-    p[1] = esp_random();
-    p[2] = esp_random();
-}
-
-
-void Cha_encryption(
-    const uint8_t * plaintext,
-    uint8_t * ciphertext,
-    uint8_t * tag,
-    uint8_t * nonce
-){
-    ChaChaPoly chacha;
-
-    chacha.clear();
-    generate_nonce(nonce);
-    chacha.setKey(CHACHA_KEY, CHACHA_KEY_SIZE); //is set  in header
-    chacha.setIV(nonce, CHACHA_NONCE_SIZE);
+// Encrypt data using AES-128-GCM
+bool aes_encrypt(uint8_t* input, uint8_t* iv, uint8_t* output, uint8_t* tag) {
     
-    // Add AAD (Optional)
-    //chacha.addAuthData(aad, aad_len);
+    // Initialize GCM context
+    mbedtls_gcm_context ctx;
+    mbedtls_gcm_init(&ctx);
 
-    chacha.encrypt(ciphertext, plaintext, CHACHA_BLOCK_SIZE);
-    chacha.computeTag(tag, CHACHA_TAG_SIZE);
-}
-
-
-void Cha_decryption(
-    const uint8_t * ciphertext,
-    uint8_t * decrypted,
-    uint8_t * tag,
-    uint8_t * nonce
-){
-    ChaChaPoly chacha;
-    
-    //print_hex("Nonce: ", nonce, CHACHA_NONCE_SIZE);
-    
-    chacha.clear();
-    chacha.setKey(CHACHA_KEY, CHACHA_KEY_SIZE); //is set  in header
-    chacha.setIV(nonce, CHACHA_NONCE_SIZE);
-
-    // Add AAD (Optional)
-    //chacha.addAuthData(aad, aad_len);
-    
-    chacha.decrypt(decrypted, ciphertext, CHACHA_BLOCK_SIZE);
-
-    if (!chacha.checkTag(tag, CHACHA_TAG_SIZE)) {
-        ESP_LOGE(TAG, "Authentication failed!");
+    // Set AES key
+    if (mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, aes_key, AES_KEY_SIZE*8) != 0) {
+        mbedtls_gcm_free(&ctx);
+        return false;
     }
+
+    //API call to perform encryption
+    int ret = mbedtls_gcm_crypt_and_tag(
+        &ctx,
+        MBEDTLS_GCM_ENCRYPT,
+        AES_BLOCK_SIZE,
+        iv, AES_IV_SIZE,
+        NULL, 0,           // No additional data
+        input,
+        output,
+        AES_TAG_SIZE,
+        tag
+    );
+
+    mbedtls_gcm_free(&ctx);
+    return ret == 0;
 }
+
+// Decrypt data using AES-128-GCM
+bool aes_decrypt(uint8_t* input, uint8_t* iv, uint8_t* tag, uint8_t* output) {
+
+    // Initialize GCM context
+    mbedtls_gcm_context ctx;
+    mbedtls_gcm_init(&ctx);
+
+    // Set AES key               
+    if (mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, aes_key, AES_KEY_SIZE*8) != 0) {
+        mbedtls_gcm_free(&ctx);
+        return false;
+    }
+    //API call to perform decryption
+    int ret = mbedtls_gcm_auth_decrypt(
+        &ctx,
+        AES_BLOCK_SIZE,
+        iv, AES_IV_SIZE,
+        NULL, 0,           // No additional data
+        tag, AES_TAG_SIZE,
+        input,
+        output
+    );
+
+    mbedtls_gcm_free(&ctx);
+    return ret == 0;
+}
+
