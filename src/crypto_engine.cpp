@@ -5,6 +5,7 @@
 #include "mbedtls/gcm.h"
 #include <Arduino.h>
 
+
 void generate_iv(uint8_t* iv) {
     uint32_t *p = (uint32_t *)iv;
     p[0] = esp_random();
@@ -41,11 +42,14 @@ bool aes_encrypt(uint8_t* input, uint8_t* iv, uint8_t* output, uint8_t* tag) {
     );
 
     mbedtls_gcm_free(&ctx);
+
+
     return ret == 0;
 }
 
 // Decrypt data using AES-128-GCM
 bool aes_decrypt(uint8_t* input, uint8_t* iv, uint8_t* tag, uint8_t* output) {
+
 
     // Initialize GCM context
     mbedtls_gcm_context ctx;
@@ -68,6 +72,8 @@ bool aes_decrypt(uint8_t* input, uint8_t* iv, uint8_t* tag, uint8_t* output) {
     );
 
     mbedtls_gcm_free(&ctx);
+
+
     return ret == 0;
 }
 
