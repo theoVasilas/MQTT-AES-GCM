@@ -1,8 +1,16 @@
 #include "crypto_engine.h"
 #include "helper_fun.h"
+#include "secrets.h"
 
 #include "mbedtls/gcm.h"
 #include <Arduino.h>
+
+void generate_iv(uint8_t* iv) {
+    uint32_t *p = (uint32_t *)iv;
+    p[0] = esp_random();
+    p[1] = esp_random();
+    p[2] = esp_random();
+}
 
 // Encrypt data using AES-128-GCM
 bool aes_encrypt(uint8_t* input, uint8_t* iv, uint8_t* output, uint8_t* tag) {
@@ -16,6 +24,8 @@ bool aes_encrypt(uint8_t* input, uint8_t* iv, uint8_t* output, uint8_t* tag) {
         mbedtls_gcm_free(&ctx);
         return false;
     }
+
+    generate_iv(iv);
 
     //API call to perform encryption
     int ret = mbedtls_gcm_crypt_and_tag(
@@ -60,4 +70,5 @@ bool aes_decrypt(uint8_t* input, uint8_t* iv, uint8_t* tag, uint8_t* output) {
     mbedtls_gcm_free(&ctx);
     return ret == 0;
 }
+
 

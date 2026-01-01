@@ -4,9 +4,10 @@
 #include "helper_fun.h"
 #include "wifi_config.h"
 
-static uint8_t plaintext_block[CHACHA_BLOCK_SIZE];
-static uint8_t auth_tag[CHACHA_TAG_SIZE];
-static uint8_t nonce[CHACHA_NONCE_SIZE];
+
+static uint8_t plaintext_block[AES_BLOCK_SIZE];
+static uint8_t tag[AES_TAG_SIZE];
+static uint8_t iv[AES_IV_SIZE];
 
 Message msg;
 
@@ -25,23 +26,23 @@ void setup() {
 
     #ifdef DEVICE_ROLE_PUBLISHER
         ESP_LOGI("MAIN", "Started as PUBLISHER");
-        memset(plaintext_block, 0xFF, CHACHA_BLOCK_SIZE);
+        memset(plaintext_block, 0xFF, AES_BLOCK_SIZE);
 
         int counter = 1; //debaging purpose
 
         for (int i = 0; i < 200; i++) {
 
-            sprintf((char*)plaintext_block, "HELLO ESP32 CHACHA %d", counter);
-            print_ASCII("Plaintext: ", plaintext_block, CHACHA_BLOCK_SIZE);
+            sprintf((char*)plaintext_block, "HELLO ESP32 AES %d", counter);
+            print_ASCII("Plaintext: ", plaintext_block, AES_BLOCK_SIZE);
             counter++;
 
-            Cha_encryption(plaintext_block, msg.ciphertext, auth_tag, nonce);
-            print_hex("Auth Tag: ", auth_tag, CHACHA_TAG_SIZE);
+            aes_encrypt(plaintext_block, iv, msg.ciphertext, tag);
+            print_hex("Auth Tag: ", tag, AES_TAG_SIZE);
             //print_hex("Ciphertext: ", ciphertext_block, CHACHA_BLOCK_SIZE);
 
             //compose the rest of the message
-            memcpy(msg.nonce, nonce, CHACHA_NONCE_SIZE);
-            memcpy(msg.tag, auth_tag, CHACHA_TAG_SIZE);
+            memcpy(msg.iv, iv, AES_IV_SIZE);
+            memcpy(msg.tag, tag, AES_TAG_SIZE);
 
             if (!mqttClient.publish(MQTT_TOPIC, (uint8_t*)&msg, sizeof(Message), false)) {
                 Serial.println("MQTT publish failed");
@@ -85,27 +86,33 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     Message* msg = (Message*)payload;
 
     // Access the fields:
-    Serial.print("Nonce: ");
-    for (int i = 0; i < CHACHA_NONCE_SIZE; i++) {
-        Serial.print(msg->nonce[i], HEX); Serial.print(" ");
+    Serial.print("iv: ");
+    for (int i = 0; i < AES_IV_SIZE; i++) {
+        Serial.print(msg->iv[i], HEX); Serial.print(" ");
     }
     Serial.println();
 
     Serial.print("Tag: ");
-    for (int i = 0; i < CHACHA_TAG_SIZE; i++) {
+    for (int i = 0; i < AES_TAG_SIZE; i++) {
         Serial.print(msg->tag[i], HEX); Serial.print(" ");
     }
     Serial.println();
 
     Serial.print("Ciphertext: ");
-    for (int i = 0; i < CHACHA_BLOCK_SIZE; i++) {
+    for (int i = 0; i < AES_BLOCK_SIZE; i++) {
         Serial.print(msg->ciphertext[i], HEX); Serial.print(" ");
     }
     Serial.println();
 
-    Cha_decryption(msg->ciphertext, plaintext_block, msg->tag, msg->nonce);
     Serial.print("Decrypting...");
-    print_ASCII("Plaintext: ", plaintext_block, CHACHA_BLOCK_SIZE);
+    bool done;
+    done = aes_decrypt(msg->ciphertext, msg->iv, msg->tag, plaintext_block);
+
+    if (done) {
+        print_ASCII("Plaintext: ", plaintext_block, AES_BLOCK_SIZE);
+    } else {
+        Serial.println("Decryption failed!");
+    }
 
 }
 
