@@ -4,14 +4,13 @@
 #include "helper_fun.h"
 #include "wifi_config.h"
 
-#define REPETITIONS 200
 
 static uint8_t plaintext_block[AES_BLOCK_SIZE];
 static uint8_t tag[AES_TAG_SIZE];
 static uint8_t iv[AES_IV_SIZE];
 
 //--------- Time tracking variables -----------
-static uint32_t timing_AES[200];
+static uint32_t timing_AES[REPETITIONS];
 uint16_t timing_count = 0;
 int elapsed = 0;
 uint64_t t_end = 0;
@@ -28,6 +27,11 @@ Message msg;
 
 void setup() {
     Serial.begin(115200);
+
+    //monitorMemory();
+    Serial.printf("AES_BLOCK_SIZE = %d bytes\n", AES_BLOCK_SIZE);
+    Serial.printf("MQTT_MAX_PACKET_SIZE = %d bytes\n", MQTT_MAX_PACKET_SIZE);
+    Serial.printf("REPETITIONS = %d\n\n", REPETITIONS);   
     
     connectWiFi();
     setupMQTT();
@@ -35,15 +39,16 @@ void setup() {
 
     
     #ifdef DEVICE_ROLE_SUBSCRIBER
-    mqttClient.setCallback(mqttCallback);
-    mqttClient.subscribe(MQTT_TOPIC);
-    ESP_LOGI("MAIN", "Started as SUBSCRIBER");
+
+        mqttClient.setCallback(mqttCallback);
+        mqttClient.subscribe(MQTT_TOPIC);
+        ESP_LOGI("MAIN", "Started as SUBSCRIBER");
+
     #endif
     
     #ifdef DEVICE_ROLE_PUBLISHER
         
         start_communication = esp_timer_get_time();
-        
         
         ESP_LOGI("MAIN", "Started as PUBLISHER");
         memset(plaintext_block, 0xFF, AES_BLOCK_SIZE);

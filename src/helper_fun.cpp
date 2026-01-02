@@ -45,7 +45,7 @@ void analyze_timing(uint32_t* timing_array, uint16_t timing_count) {
     Serial.printf("Max Time: %u us\n", max_t);
     Serial.printf("Avg Time: %.2f us\n", avg);
     
-    for(uint16_t i = 0; i < timing_count; i++)
-        Serial.printf("%d,%lu\n", i, timing_array[i]);
+    // for(uint16_t i = 0; i < timing_count; i++)
+    //     Serial.printf("%d,%lu\n", i, timing_array[i]);
 
 }

@@ -4,7 +4,8 @@
 #include "esp_log.h"
 #include <stdint.h>
 
-#define AES_BLOCK_SIZE   256 //(200 * 256)= 10 KB
+#define AES_BLOCK_SIZE 128    // 1024, 512, 128, 
+#define REPETITIONS 1024      // 128,256, 1024,
 
 #define AES_IV_SIZE 12   // Recommended for GCM
 #define AES_TAG_SIZE 16  // Authentication tag size
