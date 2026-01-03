@@ -19,10 +19,6 @@ uint64_t start_communication = 0;
 uint64_t end_communication = 0;
 //---------------------------------------------
 
-int total_received = 0;
-int decrypt_ok = 0;
-int decrypt_fail = 0;
-
 Message msg;
 
 void setup() {
@@ -135,7 +131,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     // Example: copy binary payload
     if (length == sizeof(Message)) { 
         //Serial.println("saving...");
-        total_received ++;
     }else{
         //Serial.println("Invalid payload size");
         return;
@@ -180,10 +175,8 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
     if (done) {
         //print_ASCII("Plaintext: ", plaintext_block, AES_BLOCK_SIZE);
-        decrypt_ok ++;
     } else {
         //Serial.println("Decryption failed!");
-        decrypt_fail ++;
     }
 
 }
