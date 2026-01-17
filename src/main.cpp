@@ -24,7 +24,8 @@ Message msg;
 void setup() {
     Serial.begin(115200);
 
-    //monitorMemory();
+    monitorMemory();
+    
     Serial.printf("AES_BLOCK_SIZE = %d bytes\n", AES_BLOCK_SIZE);
     Serial.printf("MQTT_MAX_PACKET_SIZE = %d bytes\n", MQTT_MAX_PACKET_SIZE);
     Serial.printf("REPETITIONS = %d\n\n", REPETITIONS);   
@@ -78,9 +79,9 @@ void setup() {
             memcpy(msg.tag, tag, AES_TAG_SIZE);
 
             if (!mqttClient.publish(MQTT_TOPIC, (uint8_t*)&msg, sizeof(Message), false)) {
-                //Serial.println("MQTT publish failed");
+                Serial.println("MQTT publish failed");
             } else {
-                //Serial.println("Published encrypted message to MQTT");
+                Serial.println("Published encrypted message to MQTT");
             }
 
             //float bytes_per_sec = (AES_BLOCK_SIZE * 1e6) / (t_end - t_start);
